@@ -1,50 +1,86 @@
-var now = new Date().getTime();
-var conv_id;
+var Realtime = AV.Realtime
+	,TextMessage = AV.TextMessage
+	,realtime = new Realtime({
+	  appId: 'nfxWSOjzkw6t3KMkBVsc5LMJ-gzGzoHsz',
+	  region: 'cn', //美国节点为 "us"
+	});
 //创建对话
 function createConv() {
-	$.ajax({
-		headers: {
-        	"Accept": "application/json; charset=utf-8",
-	  	  	"Content-Type": "application/json",
-        	"X-LC-Id": conf.LeanCloudId,
-        	"X-LC-Key": conf.LeanCloudKey
-    	},
-		url:"https://api.leancloud.cn/1.1/classes/_Conversation",
-		type:"post",
-		dataType:"json",
-		data:JSON.stringify({
-	        "name": now+"room",
-	        "m": [
-	          now+"", "hay123456"
+	realtime.createIMClient(visitor).then(function(v) {
+		return v.createConversation({
+	        "name": visitor+" & "+home_user,
+	        "members": [
+	        	home_user
 	        ]
-	    }),
-	    success:function(data){
-	    	conv_id = data.objectId
-	    }
+	    });
+	}).then(function(conversation) {
+		sessionStorage.conv_id = conversation.id;
+		window.conversation = conversation
+		getPastMessage(conversation)
+	})
+}
+//根据ID获取对话
+function getConvById(){
+	realtime.createIMClient(visitor).then(function(v) {
+		v.getConversation(sessionStorage.conv_id).then(function(conversation) {
+		  	window.conversation = conversation
+			getPastMessage(conversation)
+		}).catch(console.error.bind(console));
 	})
 }
 
 //发送消息
 function sendMessage(message) {
-	$.ajax({
-		headers: {
-        	"Accept": "application/json; charset=utf-8",
-	  	  	"Content-Type": "application/json",
-        	"X-LC-Id": conf.LeanCloudId,
-        	"X-LC-Key": conf.LeanCloudKey
-    	},
-		url:"https://leancloud.cn/1.1/rtm/messages",
-		type:"post",
-		dataType:"json",
-		data:JSON.stringify({
-	        "from_peer": "1478765415080",
-	        "conv_id": "58242b6967f3560058c477a6",
-	        "transient": false,
-	        "message": {_lctype:-1,_lctext:"这是一个纯文本消息"},
-	        "no_sync": true
-	    }),
-	    success:function(data){
-	    	alert(data)
-	    }
-	})
+	window.conversation.send(new AV.TextMessage(JSON.stringify({text:message,from:visitor})))
+		.then(function(message) {
+
+		}).catch(console.error);
+}
+
+//接收消息
+function receiveMessage(){
+	realtime.createIMClient(visitor).then(function(v) {
+		v.on('message', function(message, conversation) {
+			var content = $(".content");
+			message = JSON.parse(message.text);
+			content.append("<div class='textBoxOuter'><div class='textBox receive'>"+message.text+"</div><div class='clear'></div>");
+			var scrollTo = content[0].scrollHeight;
+			content.scrollTop(scrollTo);
+		});
+	}).catch(console.error);
+}
+
+//获取过去的消息
+function getPastMessage(conversation){
+	//收取之前的聊天记录
+	var content = $('.content');
+	conversation.queryMessages({
+	  	limit: 10, // limit 取值范围 1~1000，默认 20
+	}).then(function(messages) {
+		for (var i = 0, max = messages.length; i < max; i++) {
+			var message = JSON.parse(messages[i].text);
+			if (message.from === home_user) {
+				content.append("<div class='textBoxOuter'><div class='textBox receive'>"+message.text+"</div><div class='clear'></div>");
+			}else{
+				content.append("<div class='textBoxOuter'><div class='textBox send'>"+message.text+"</div><div class='clear'></div>");
+			}
+			var scrollTo = content[0].scrollHeight;
+			content.scrollTop(scrollTo);
+		}
+		
+	}).catch(console.error.bind(console));
+}
+
+
+function testSend(){
+	realtime.createIMClient(home_user).then(function(v) {
+		return v.createConversation({
+			members: [visitor],
+			name: home_user+" & "+visitor,
+		});
+	}).then(function(conversation) {
+		return conversation.send(new AV.TextMessage(JSON.stringify({text:"你好",from:visitor})));
+	}).then(function(message) {
+
+	}).catch(console.error);
 }

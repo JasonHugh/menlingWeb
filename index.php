@@ -1,5 +1,6 @@
 <?php
 	$id = $_GET['id'];
+	$home_user = $_GET['home_user'];
 ?>
 <!DOCTYPE html>
 <html>
@@ -44,7 +45,7 @@
 		var height = $(window).height();
 		$(".main").css("height",height);
 		$("div.sub_box:not(#other)").click(function(){
-			location.href = "pushtomenapp.php?id=<?=$id?>&customer="+$(this).children("h3").text();
+			location.href = "pushtomenapp.php?id=<?=$id?>&home_user=<?=$home_user?>&customer="+$(this).children("h3").text();
 		})
 		$("#other").click(function() {
 			$("#shadow").show();
@@ -57,7 +58,7 @@
 		$("#send").click(function(){
 			var name = $(".modalBox>input").val().trim();
 			if (name !== "") {
-				location.href = "pushtomenapp.php?id=<?=$id?>&customer="+name;
+				location.href = "pushtomenapp.php?id=<?=$id?>&home_user=<?=$home_user?>&customer="+name;
 			}
 		})
 	</script>
